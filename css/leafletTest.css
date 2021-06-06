@@ -1,5 +1,15 @@
+@font-face {
+  font-family: 'AstralsOkami';
+  src: url('../Astralsokami-Regular.otf') format('embedded-opentype'),
+    url('../Astralsokami-Regular.otf') format('woff2'),
+    url('../Astralsokami-Regular.otf') format('woff'),
+    url('../Astralsokami-Regular.otf') format('truetype'),
+    url('../Astralsokami-Regular.otf') format('svg');
+}
+
 * {
   box-sizing: border-box;
+  font: 1.15em 'AstralsOkami', system-ui;
 }
 html {
   background: #f8f8f8;

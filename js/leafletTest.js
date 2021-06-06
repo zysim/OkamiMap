@@ -1,4 +1,26 @@
-const bScale = 8000;
+import { getCollectible } from './collectibles.js'
+import { getLocale } from './utils.js'
+
+// TODO: The size here needs to be tinkered with. This will affect css/style.css too.
+const ICON_SIZE = 128
+
+function formatValue(value) {
+  if (!value) return null
+  const thousands = Math.floor(value / 1000)
+  const rest = `${value % 1000}`.padStart(3, '0')
+  return `${thousands > 0 ? thousands + ',' : ''}${rest} ${getLocale('currency')}`
+}
+
+function createIcon(name) {
+  return L.icon({
+    iconUrl: getCollectible(name)?.path || '../CollectiblesImages/Default.png',
+    iconSize: [ICON_SIZE, ICON_SIZE],
+    iconAnchor: [ICON_SIZE / 4, ICON_SIZE / 2],
+    popupAnchor: [0, -ICON_SIZE / 2],
+    className: 'mine-marker-icon',
+  })
+}
+
 const zoomGranularity = 0.5;
 const map = L.map('map', {
   crs: L.CRS.Simple,
@@ -6,7 +28,6 @@ const map = L.map('map', {
   maxZoom: -1,
   zoomSnap: zoomGranularity,
   zoomDelta: zoomGranularity,
-  // maxBounds: [[-bScale, -bScale], [bScale, bScale]],
   maxBoundsViscosity: 1,
   layerPreview: true
 });
@@ -40,12 +61,9 @@ async function paraFetchJSON(...URLs) {
 }
 
 let lootData;
-// let mapIDMap;
-let mapInfo
+let mapInfo;
 (async ()=>{
-  let response;
   [lootData, mapInfo] = await paraFetchJSON(
-    // './lootData.json', './mapIDMap.json', './mapInfo.json'
     './lootData.json', './mapInfo.json'
   );
 
@@ -56,8 +74,12 @@ let mapInfo
       if (loot.mapID === currentGameMap) {
         const coords = loot.coords;
         const latlong = [-coords[2], coords[0]];
+        const value = formatValue(getCollectible(loot.contents)?.value);
         map.lootLayer.addLayer(
-          L.marker(latlong, {image: loot.image}).bindPopup(`${loot.contents} @${loot.coords}`)
+          L.marker(latlong, {
+            image: loot.image,
+            icon: createIcon(loot.contents),
+          }).bindPopup(`${loot.contents}${value ? ' | ' + value : ''}`),
         );
       }
     }
@@ -83,11 +105,6 @@ let mapInfo
 
         if (+id === currentGameMap) selOpt.setAttribute('selected', '');
       }
-      // const setMap = function(){
-      //   gauge.innerHTML = 'Zoom level: ' + map.getZoom();
-      // };
-      // update();
-      // map.on('zoomstart zoom zoomend', update)
       L.DomEvent.on(selBox, 'input', e=>{
         const selID = +selBox.value;
         const selInfo = mapInfo[selID];

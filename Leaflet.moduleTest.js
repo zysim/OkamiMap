@@ -17,28 +17,28 @@
   // L.Control.MarkerThumbnail = L.Control.extend({
   //   onAdd: function(map) {
   //     var img = L.DomUtil.create('img');
-      
+
   //     img.src = './favicon-32x32.png';
   //     img.style.width = '200px';
-      
+
   //     return img;
   //   },
-    
+
   //   onRemove: function(map) {
   //     // Nothing to do here
   //   }
   // });
-  
+
   // L.control.markerThumbnail = function(opts) {
   //   return new L.Control.MarkerThumbnail(opts);
   // }
-  
+
   // L.control.markerThumbnail({ position: 'bottomright' }).addTo(map);
   //Below is the fullscreen implementation.
   L.Control.LayerPreview = L.Control.extend({
     options: {
       position: 'bottomright',
-      defaultSrc: './favicon.ico',
+      defaultSrc: './CollectiblesImages/Default.png',
       width: '320px',
       height: '180px'
     },
@@ -77,7 +77,7 @@
   });
 
   L.Map.include({
-    setPreviewImage: function (url) {
+    setPreviewImage: function (url = this.layerPreview.options.defaultSrc) {
       this.layerPreview.image.src = url;
     },
     // isFullscreen: function () {
@@ -168,7 +168,7 @@
        * arguments with the options object. This means you generally have to
        * pass in an object. If you pass in a string, for example, it will
        * interpret it as an array, and add a key for each index with the value
-       * being each letter of that string. */ 
+       * being each letter of that string. */
       // this.layerPreview = new L.Control.LayerPreview(this.options.layerPreview); //WRONG
       this.layerPreview = new L.Control.LayerPreview(); //Good, unless we want extra parameters
       this.addControl(this.layerPreview);
