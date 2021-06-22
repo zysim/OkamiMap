@@ -2,7 +2,7 @@ export default {
   rowIdGenerator: animal =>
     `Map_${animal.mapID}_at_${animal.coords?.join('_') || 'UNKNOWN'}`,
   headers: [
-    { text: 'Map', key: 'mapStr', style: { width: '23%' } },
+    { text: 'Map', key: 'mapID', style: { width: '23%' } },
     { text: 'Bestiary', key: 'bestiary', style: { width: '10%' } },
     { text: 'Availability', key: 'availability', style: { width: '10%' } },
     { text: 'Praise', key: 'praise', style: { width: '8%' } },
@@ -10,7 +10,7 @@ export default {
     { text: 'Image', key: 'image', style: { width: '12%' } },
     { text: 'Notes', key: 'notes' },
   ],
-  mapStr: [
+  mapID: [
     'default',
     (animal, mapInfo) => {
       const { bestiary, mapID, types } = animal

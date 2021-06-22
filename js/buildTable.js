@@ -1,39 +1,4 @@
 import ThFilterable from '../ThFilterable.js'
-import { paraFetchJSON } from './util.js'
-
-const DATA = (()=>{
-  /* Take the current URL and remove everything after the last slash which isn't part of the hash or query: */
-  const basePath = /[^#?@]+[^/]\//.exec(location.href)[0];
-  return {
-    animals: {
-      configPath: `${basePath}Animals/config.js`,
-      jsonPath: `${basePath}Animals/data.json`,
-    },
-    loot: {
-      configPath: `${basePath}Loot/config.js`,
-      jsonPath: `${basePath}Loot/data.json`,
-    },
-  };
-})();
-
-/**
- * Modified from https://stackoverflow.com/a/54631141.
- * Renamed function, used the lossy base64 string directly, and make it be async.
- */
-function checkWebp() {
-  return new Promise(res => {
-    const img = new Image()
-    img.onload = function () {
-      const result = img.width > 0 && img.height > 0
-      res(result)
-    }
-    img.onerror = function () {
-      res(false)
-    }
-    img.src =
-      'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA'
-  })
-}
 
 function tdEl(text) {
   const el = document.createElement('td')
@@ -59,6 +24,14 @@ function tdImageEl(src, backupSrc, hasWebp) {
   return td
 }
 
+const getConfig = async res => {
+  try {
+    return await import(res.url.replace('.json', 'Config.js'))
+  } catch (e) {
+    throw Error(`Error fetching config for ${res.url}: ${e.message}`)
+  }
+}
+
 /**
  * @param {Object} config
  * @param {number} colIndex
@@ -78,9 +51,9 @@ const getValuesOfTableColumnForFilter = (dataRows, colIndex) =>
 /**
  * @param {Object} config The config JS file to build each `<th>` with
  * @param {HTMLTableRowElement[]} dataRows The built rows of data
- * @param {() => void} updateHeaderCellsCb To update the header cells
+ * @param {() => void} cb To update the header cells
  */
-const createHeaderRow = (config, dataRows, updateHeaderCellsCb) => {
+const createHeaderRow = (config, dataRows, cb) => {
   const tr = document.createElement('tr')
 
   tr.append(
@@ -93,7 +66,7 @@ const createHeaderRow = (config, dataRows, updateHeaderCellsCb) => {
           new ThFilterable(
             getValuesOfTableColumnForFilter(dataRows, colIndex),
             valueToFilter => setFilter(dataRows, valueToFilter, colIndex, tr),
-            () => updateHeaderCellsCb(dataRows, colIndex, tr),
+            () => clearFilter(dataRows, colIndex, tr),
           ),
         )
       }
@@ -161,18 +134,12 @@ const updateVisibilityOfRows = dataRows =>
 /**
  * @param {HTMLTableRowElement} tHeadRow
  * @param {HTMLTableRowElement[]} dataRows
- * @param {boolean | undefined} hideRows
  */
-const updateFilterableHeaderDropdownLists = (
-  tHeadRow,
-  dataRows,
-  hideRows = false,
-) => {
+const updateFilterableHeaderDropdownLists = (tHeadRow, dataRows) => {
   Array.from(tHeadRow.children).forEach((th, colIndex) => {
     if (th.firstElementChild instanceof ThFilterable) {
       th.firstElementChild.updateData(
         dataRows.map(row => row.cells.item(colIndex).textContent),
-        hideRows,
       )
     }
   })
@@ -196,37 +163,27 @@ const setFilter = (dataRows, value, colIndex, tHeadRow) => {
  * @param {HTMLTableRowElement} tHeadRow
  */
 const clearFilter = (dataRows, colIndex, tHeadRow) => {
+  console.log('Uh')
   markCellsAsShown(dataRows, colIndex)
   const rowsToShow = updateVisibilityOfRows(dataRows)
-  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow, false)
+  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow)
 }
 
-const getPathsForType = type => {
-  if (!DATA[type])
-    throw Error(`Type ${type} is invalid! No table data can be supplied`)
-  return DATA[type]
-}
-
-export default async type => {
-  const { configPath, jsonPath } = getPathsForType(type)
-  const [json, mapInfo] = await paraFetchJSON(jsonPath, './mapInfo.json')
-  try {
-    const config = (await import(configPath)).default
-    const hasWebp = await checkWebp()
-    const dataRows = json.map(jsonRow => {
-      const dataRow = createDataRow(config, jsonRow)
-      dataRow.append(
-        ...config.headers.map(({ key }) =>
-          createDataCell(config, key, jsonRow, mapInfo, hasWebp),
-        ),
-      )
-      return dataRow
-    })
-    return {
-      header: createHeaderRow(config, dataRows, clearFilter),
-      body: dataRows,
-    }
-  } catch (importConfigError) {
-    throw Error(`Error getting config for ${type}:`, importConfigError)
+export default async (url, mapIDMap) => {
+  const res = await fetch(url)
+  const config = (await getConfig(res)).default
+  const json = await res.json()
+  const dataRows = json.map(el => {
+    const row = createDataRow(config, el)
+    row.append(
+      ...config.headers.map(({ key }) =>
+        createDataCell(config, key, el, mapIDMap),
+      ),
+    )
+    return row
+  })
+  return {
+    header: createHeaderRow(config, dataRows),
+    body: dataRows,
   }
 }
