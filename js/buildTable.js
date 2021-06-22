@@ -1,3 +1,5 @@
+import ThFilterable from '../ThFilterable.js'
+
 function tdEl(text) {
   const el = document.createElement('td')
   el.innerText = text || 'N/A'
@@ -30,30 +32,47 @@ const getConfig = async res => {
   }
 }
 
-const createHeaderRow = config => {
+/**
+ * @param {Object} config
+ * @param {number} colIndex
+ */
+const isImageColumn = (config, colIndex) =>
+  config[config.headers[colIndex].key] === 'image'
+
+/**
+ * @param {HTMLTableRowElement[]} dataRows
+ * @param {number} colIndex
+ */
+const getValuesOfTableColumnForFilter = (dataRows, colIndex) =>
+  Array.from(
+    new Set(dataRows.map(row => row.cells.item(colIndex).innerText).sort()),
+  )
+
+/**
+ * @param {Object} config The config JS file to build each `<th>` with
+ * @param {HTMLTableRowElement[]} dataRows The built rows of data
+ * @param {() => void} cb To update the header cells
+ */
+const createHeaderRow = (config, dataRows, cb) => {
   const tr = document.createElement('tr')
 
-  if (config.header) {
-    tr.append(
-      ...config.header.map(h => {
-        const th = document.createElement('th')
-        th.textContent = h.text
-        if (h.style) Object.assign(th.style, h.style)
-        return th
-      }),
-    )
-  } else {
-    tr.append(
-      ...config.renderOrder.map(h => {
-        const th = document.createElement('th')
-        th.textContent = h
-        Object.assign(th.style, {
-          textTransform: 'capitalize',
-        })
-        return th
-      }),
-    )
-  }
+  tr.append(
+    ...config.headers.map((h, colIndex) => {
+      const th = document.createElement('th')
+      th.textContent = h.text
+      if (h.style) Object.assign(th.style, h.style)
+      if (!isImageColumn(config, colIndex)) {
+        th.appendChild(
+          new ThFilterable(
+            getValuesOfTableColumnForFilter(dataRows, colIndex),
+            valueToFilter => setFilter(dataRows, valueToFilter, colIndex, tr),
+            () => clearFilter(dataRows, colIndex, tr),
+          ),
+        )
+      }
+      return th
+    }),
+  )
 
   return tr
 }
@@ -84,19 +103,87 @@ const createDataCell = (config, key, el, mapIDMap) => {
   }
 }
 
+const markCellsAsHidden = (dataRows, value, colIndex) => {
+  dataRows.forEach(row => {
+    if (row.cells.item(colIndex).textContent !== value) {
+      row.cells.item(colIndex).setAttribute('data-mark-hidden', true)
+    } else {
+      row.cells.item(colIndex).removeAttribute('data-mark-hidden')
+    }
+  })
+}
+
+const markCellsAsShown = (dataRows, colIndex) => {
+  dataRows.forEach(row => {
+    row.cells.item(colIndex).removeAttribute('data-mark-hidden')
+  })
+}
+
+const updateVisibilityOfRows = dataRows =>
+  dataRows.filter(row => {
+    row.style.display = 'table-row'
+    for (const cell of row.cells) {
+      if (cell.dataset.markHidden === 'true') {
+        row.style.display = 'none'
+        return false
+      }
+    }
+    return true
+  })
+
+/**
+ * @param {HTMLTableRowElement} tHeadRow
+ * @param {HTMLTableRowElement[]} dataRows
+ */
+const updateFilterableHeaderDropdownLists = (tHeadRow, dataRows) => {
+  Array.from(tHeadRow.children).forEach((th, colIndex) => {
+    if (th.firstElementChild instanceof ThFilterable) {
+      th.firstElementChild.updateData(
+        dataRows.map(row => row.cells.item(colIndex).textContent),
+      )
+    }
+  })
+}
+
+/**
+ * @param {HTMLTableRowElement[]} dataRows
+ * @param {string} value
+ * @param {int} colIndex
+ * @param {HTMLTableRowElement} tHeadRow
+ */
+const setFilter = (dataRows, value, colIndex, tHeadRow) => {
+  markCellsAsHidden(dataRows, value, colIndex)
+  const rowsToShow = updateVisibilityOfRows(dataRows)
+  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow)
+}
+
+/**
+ * @param {HTMLTableRowElement[]} dataRows
+ * @param {number} colIndex
+ * @param {HTMLTableRowElement} tHeadRow
+ */
+const clearFilter = (dataRows, colIndex, tHeadRow) => {
+  console.log('Uh')
+  markCellsAsShown(dataRows, colIndex)
+  const rowsToShow = updateVisibilityOfRows(dataRows)
+  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow)
+}
+
 export default async (url, mapIDMap) => {
   const res = await fetch(url)
   const config = (await getConfig(res)).default
+  const json = await res.json()
+  const dataRows = json.map(el => {
+    const row = createDataRow(config, el)
+    row.append(
+      ...config.headers.map(({ key }) =>
+        createDataCell(config, key, el, mapIDMap),
+      ),
+    )
+    return row
+  })
   return {
-    header: createHeaderRow(config),
-    body: (await res.json()).map((el, i) => {
-      const row = createDataRow(config, el)
-      row.append(
-        ...config.renderOrder.map(key =>
-          createDataCell(config, key, el, mapIDMap),
-        ),
-      )
-      return row
-    }),
+    header: createHeaderRow(config, dataRows),
+    body: dataRows,
   }
 }
