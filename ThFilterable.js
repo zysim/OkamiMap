@@ -1,12 +1,10 @@
 class ThFilterable extends HTMLElement {
   filterCallback
   resetCallback
-  initData
   constructor(data, filterCallback, resetCallback) {
     super()
     this.resetCallback = resetCallback
     this.filterCallback = filterCallback
-    this.initData = data
     const shadow = this.attachShadow({ mode: 'open' })
     const container = document.createElement('div')
     container.setAttribute('class', 'container')
@@ -38,7 +36,7 @@ class ThFilterable extends HTMLElement {
           cursor: pointer;
         }
 
-        .filterListContainer {
+        .dropdownListContainer {
           border-collapse: collapse;
           display: none;
           background: white;
@@ -49,7 +47,7 @@ class ThFilterable extends HTMLElement {
           overflow-y: scroll;
         }
 
-        .filterListContainer.visible {
+        .dropdownListContainer.visible {
           display: block;
         }
 
@@ -58,36 +56,44 @@ class ThFilterable extends HTMLElement {
           font-size: 1rem;
         }
 
-        .filterList {
+        .dropdownList {
           list-style: none;
           text-align: left;
           padding: 0;
           margin: 0;
         }
 
-        .filterList:hover {
+        .dropdownList:hover {
           cursor: pointer;
         }
 
-        .filterList > li {
+        .dropdownList > li {
           border-bottom: solid 0.5px black;
           padding: 1rem;
         }
 
-        .filterList > li:last-child {
+        .dropdownList > li.selected {
+          font-weight: bold;
+        }
+
+        .dropdownList > li.hidden {
+          display: none;
+        }
+
+        .dropdownList > li:last-child {
           border: 0;
         }
 
-        .filterList > li:hover {
+        .dropdownList > li:hover {
           background: grey;
         }
       </style>
       <div class="buttonAndFilterListContainer">
         <button class="button" onclick="">&#x25bc;</button>
-        <div class="filterListContainer">
+        <div class="dropdownListContainer">
           <input type="text" class="search" placeholder="Search..."/>
-          <ul class="filterList">
-            ${this.createListItemsHtml(data)}
+          <ul class="dropdownList">
+            ${this._createListItemsHtml(data)}
           </ul>
         </div>
       </div>
@@ -96,21 +102,21 @@ class ThFilterable extends HTMLElement {
   }
 
   /** @return {HTMLDivElement} */
-  get filterListContainerEl() {
-    return this.shadowRoot.querySelector('.filterListContainer')
+  get dropdownListContainerEl() {
+    return this.shadowRoot.querySelector('.dropdownListContainer')
   }
 
   /** @return {HTMLUListElement} */
-  get filterListEl() {
-    return this.shadowRoot.querySelector('.filterList')
+  get dropdownListEl() {
+    return this.shadowRoot.querySelector('.dropdownList')
   }
 
-  get listItemEls() {
+  get dropdownListItemEls() {
     return this.shadowRoot.querySelectorAll('li')
   }
 
   /** @return {NodeListOf<HTMLLIElement>} */
-  get listItemElsWithoutClear() {
+  get dropdownListItemElsWithoutClear() {
     return this.shadowRoot.querySelectorAll('li[data-clear="false"]')
   }
 
@@ -129,31 +135,15 @@ class ThFilterable extends HTMLElement {
     window.addEventListener('click', this.hideDropdown)
     this.shadowRoot?.addEventListener('click', this._hideDropdown)
     this.toggleButtonEl.addEventListener('click', this.toggleDropdown)
-    this.listItemEls.forEach((li, i) => {
+    this.dropdownListItemEls.forEach((li, i) => {
       li.addEventListener(
         'click',
-        !i ? this.resetCallback : this.triggerFilterCallback(li),
+        !i ? this.triggerResetCallback : this.triggerFilterCallback(li),
       )
       li.addEventListener('click', () => this._hideDropdown(true))
     })
     // Add search listener
-    this.searchInputEl.addEventListener('input', ev => {
-      if (ev.target.value.length === 0) {
-        this.listItemElsWithoutClear.forEach(li => {
-          li.style.display = 'list-item'
-        })
-        return
-      }
-      const fuse = new Fuse(this.listItemElsWithoutClear, {
-        keys: ['dataset.type'],
-      })
-      const result = fuse.search(ev.target.value)
-      this.listItemElsWithoutClear.forEach(li => {
-        if (!result.find(r => r.item.dataset.type === li.dataset.type)) {
-          li.style.display = 'none'
-        }
-      })
-    })
+    this.searchInputEl.addEventListener('input', this.filterDropdownList)
   }
 
   disconnectedCallback() {
@@ -161,38 +151,64 @@ class ThFilterable extends HTMLElement {
     window.removeEventListener('click', this.hideDropdown)
     this.shadowRoot?.removeEventListener('click', this._hideDropdown)
     this.toggleButtonEl.removeEventListener('click', this.toggleDropdown)
-    this.listItemEls.forEach((li, i) => {
+    this.dropdownListItemEls.forEach((li, i) => {
       li.removeEventListener(
         'click',
-        !i ? this.resetCallback : this.triggerFilterCallback(li),
+        !i ? this.triggerResetCallback : this.triggerFilterCallback(li),
       )
       li.removeEventListener('click', () => this._hideDropdown(true))
     })
     // Remove search listener
-    this.searchInputEl.addEventListener('change', function (ev) {
-      //
-    })
+    this.searchInputEl.addEventListener('change', this.filterDropdownList)
   }
 
-  createListItemsHtml = data =>
+  _createListItemsHtml = data =>
     ['Clear']
       .concat(data)
       .map((d, i) => `<li data-type="${d}" data-clear="${!i}">${d}</li>`)
       .join('')
 
-  hideDropdown = e => {
-    this._hideDropdown(e.target !== this)
-  }
-
   _hideDropdown = e => {
     if (typeof e === 'boolean') {
-      e && this.filterListContainerEl.classList.remove('visible')
+      e && this.dropdownListContainerEl.classList.remove('visible')
     } else if (
       !e.target.closest('.button') &&
-      !e.target.closest('.filterListContainer')
+      !e.target.closest('.dropdownListContainer')
     ) {
-      this.filterListContainerEl.classList.remove('visible')
+      this.dropdownListContainerEl.classList.remove('visible')
     }
+  }
+
+  deselectAllListItemsExceptFor = (selected = null) => {
+    this.dropdownListItemElsWithoutClear.forEach(li => {
+      if (selected === li) {
+        li.classList.add('selected')
+      } else {
+        li.classList.remove('selected')
+      }
+    })
+  }
+
+  filterDropdownList = e => {
+    if (e.target.value.length === 0) {
+      this.dropdownListItemElsWithoutClear.forEach(li => {
+        li.classList.remove('hidden')
+      })
+      return
+    }
+    const fuse = new Fuse(this.dropdownListItemElsWithoutClear, {
+      keys: ['dataset.type'],
+    })
+    const result = fuse.search(e.target.value)
+    this.dropdownListItemElsWithoutClear.forEach(li => {
+      if (!result.find(r => r.item.dataset.type === li.dataset.type)) {
+        li.classList.add('hidden')
+      }
+    })
+  }
+
+  hideDropdown = e => {
+    this._hideDropdown(e.target !== this)
   }
 
   toggleDropdown(_) {
@@ -201,12 +217,34 @@ class ThFilterable extends HTMLElement {
 
   triggerFilterCallback(li) {
     return () => {
+      this.deselectAllListItemsExceptFor(li)
       this.filterCallback(li.dataset.type)
     }
   }
 
-  updateData = update => {
-    this.filterListEl.innerHTML = this.createListItemsHtml(update)
+  triggerResetCallback = () => {
+    this.deselectAllListItemsExceptFor()
+    this.resetCallback()
+  }
+
+  /**
+   * @param {string[]} update
+   * @param {boolean} hide
+   */
+  updateData = (update, hide) => {
+    const u = Array.from(new Set(update))
+    this.dropdownListItemElsWithoutClear.forEach(li => {
+      if (u.includes(li.textContent)) {
+        hide ? li.classList.add('hidden') : li.classList.remove('hidden')
+      } else {
+        hide ? li.classList.remove('hidden') : li.classList.add('hidden')
+      }
+    })
+    this.dropdownListItemElsWithoutClear.forEach(li => {
+      if (!li.classList.contains('hidden')) {
+        console.log(li.textContent)
+      }
+    })
   }
 }
 

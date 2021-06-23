@@ -134,12 +134,18 @@ const updateVisibilityOfRows = dataRows =>
 /**
  * @param {HTMLTableRowElement} tHeadRow
  * @param {HTMLTableRowElement[]} dataRows
+ * @param {boolean | undefined} hideRows
  */
-const updateFilterableHeaderDropdownLists = (tHeadRow, dataRows) => {
+const updateFilterableHeaderDropdownLists = (
+  tHeadRow,
+  dataRows,
+  hideRows = false,
+) => {
   Array.from(tHeadRow.children).forEach((th, colIndex) => {
     if (th.firstElementChild instanceof ThFilterable) {
       th.firstElementChild.updateData(
         dataRows.map(row => row.cells.item(colIndex).textContent),
+        hideRows,
       )
     }
   })
@@ -163,10 +169,9 @@ const setFilter = (dataRows, value, colIndex, tHeadRow) => {
  * @param {HTMLTableRowElement} tHeadRow
  */
 const clearFilter = (dataRows, colIndex, tHeadRow) => {
-  console.log('Uh')
   markCellsAsShown(dataRows, colIndex)
   const rowsToShow = updateVisibilityOfRows(dataRows)
-  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow)
+  updateFilterableHeaderDropdownLists(tHeadRow, rowsToShow, false)
 }
 
 export default async (url, mapIDMap) => {
