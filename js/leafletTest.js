@@ -1,8 +1,8 @@
 import { getCollectible } from './collectibles.js'
 import { getLocale } from './utils.js'
 
-// TODO: The size here needs to be tinkered with. This will affect css/style.css too.
-const ICON_SIZE = 128
+// TODO: The size here needs to be tinkered with. This will affect css/leafletTest.css too.
+const ICON_SIZE = 40
 
 function formatValue(value) {
   if (!value) return null
