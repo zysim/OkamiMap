@@ -19,8 +19,8 @@
 </head>
 
 <body>
-  <img id="preview" alt="Preview Image" src="./CaveOfNagi/sb01.png" />
-  <div id="table-cont" data-json-path="./lootData.json">
+  <img id="preview" alt="Preview Image" src="./Loot/CaveOfNagi/sb01.jpeg" />
+  <div id="table-cont" data-type="loot">
     <table>
     <thead id="th">
     </thead>
@@ -34,5 +34,20 @@
   </footer>
 <script async src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.1/dist/fuse.basic.js"></script>
 <script async type="module" src="js/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+  <script>
+    function addDarkmodeWidget() {
+      new Darkmode({
+        bottom: '64px',
+        buttonColorDark: 'hsl(0, 0%, 5%)',
+        buttonColorLight: 'hsl(0, 0%, 97%)',
+        mixColor: 'hsl(0, 0%, 90%)',
+        backgroundColor: 'hsl(0, 0%, 97%)',
+        label: '🌓',
+      }).showWidget();
+    }
+    window.addEventListener('load', addDarkmodeWidget);
+  </script>
+  <script async type="module" src="js/index.js"></script>
 </body>
 </html>

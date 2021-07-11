@@ -17,6 +17,7 @@ body {
   margin: 0;
   overflow: hidden;
 }
+
 #preview {
   display: block;
   width: 100%;
@@ -26,9 +27,9 @@ body {
   position: relative;
   opacity: 1;
   filter: none;
-  transition-property: opacity filter;
+  transition-property: opacity, filter;
   transition-duration: 0.2s;
-  transition-delay: 0;
+  transition-delay: 0s;
 }
 #preview.loading {
   opacity: 0.5;
@@ -38,10 +39,6 @@ body {
 #table-cont {
   flex: 1 1 auto;
   overflow-y: scroll;
-}
-
-#table-cont[data-json-path='./animalData.json'] {
-  max-width: 100%;
 }
 
 /* @media (min-aspect-ratio: 4/1) {
@@ -61,15 +58,13 @@ body {
 table {
   border-collapse: collapse;
   table-layout: fixed;
-  width: 1500px;
-}
-
-#table-cont[data-json-path='./animalData.json'] table {
-  max-width: 100%;
+  /* width: 1500px; briefly removing cuz this sux*/
 }
 
 tr.current-pv-row {
   background-color: #ddf;
+  /* Prevent preview-row highlighting from being made invisible by darkmode library: */
+  isolation: isolate;
 }
 
 td,
@@ -86,13 +81,16 @@ th {
   font-weight: bold;
   position: sticky;
   top: 0;
+  /* Make sure header is shown above rows, including .current-pv-row: */
+  /* This is necessary because isolation: isolate; creates a stacking context. */
+  z-index: 1;
 }
 
-#table-cont[data-json-path='./animalData.json'] th {
+#table-cont[data-type='animals'] th {
   background: #fca;
 }
 
-#table-cont[data-json-path='./lootData.json'] th {
+#table-cont[data-type='loot'] th {
   background: #afc;
 }
 
@@ -100,7 +98,7 @@ th {
   margin-right: 5px;
 }
 
-#table-cont[data-json-path='./lootData.json'] .pv {
+#table-cont[data-type='loot'] .pv {
   width: 5em;
 }
 

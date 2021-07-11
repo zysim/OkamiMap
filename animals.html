@@ -19,8 +19,8 @@
 </head>
 
 <body>
-  <img id="preview" alt="Preview Image" src="./Kamiki/Chicken.png" />
-  <div id="table-cont" data-json-path="./animalData.json">
+  <img id="preview" alt="Preview Image" src="./Animals/Kamiki/Chicken.jpeg" />
+  <div id="table-cont" data-type="animals">
     <table>
     <thead id="th">
     </thead>
@@ -31,10 +31,21 @@
   <footer>
     <a href="./">Treasures/Clovers</a>
     | <a href="https://github.com/dshepsis/OkamiMap">Repository</a>
-    | Credits to WhatAboutClyde for decompressing and parsing the game files.
-    | Site by Auride
   </footer>
-
-<script async type="module" src="js/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/darkmode-js@1.5.7/lib/darkmode-js.min.js"></script>
+  <script>
+    function addDarkmodeWidget() {
+      new Darkmode({
+        bottom: '64px',
+        buttonColorDark: 'hsl(0, 0%, 5%)',
+        buttonColorLight: 'hsl(0, 0%, 97%)',
+        mixColor: 'hsl(0, 0%, 90%)',
+        backgroundColor: 'hsl(0, 0%, 97%)',
+        label: '🌓',
+      }).showWidget();
+    }
+    window.addEventListener('load', addDarkmodeWidget);
+  </script>
+  <script async type="module" src="js/index.js"></script>
 </body>
 </html>
